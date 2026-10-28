@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en-IE">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#183a2f">
+<meta name="robots" content="noindex">
+<title>Wednesday Delivery Shift</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Public+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/base.css">
+<style>
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; -webkit-text-size-adjust: 100%; }
+[hidden] { display: none !important; }
+img { max-width: 100%; }
+
+.gate { min-height: 80vh; display: grid; place-items: center; padding-block: 32px; }
+.gate-card { width: 100%; max-width: 380px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 24px 20px; display: grid; gap: 14px; }
+.gate-card h2 { margin: 0; font-family: var(--display); font-weight: 700; font-size: 1.6rem; text-transform: uppercase; letter-spacing: .02em; }
+.gate-card p { margin: 0; color: var(--muted); font-size: .9rem; }
+.field { display: grid; gap: 6px; }
+.field label { font-size: .78rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.field input { font: inherit; font-size: 1.1rem; padding: 12px 14px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); width: 100%; }
+.field input.pin { letter-spacing: .4em; font-variant-numeric: tabular-nums; }
+.field input:focus-visible { outline: 3px solid var(--brass); outline-offset: 1px; }
+.btn { font: inherit; font-weight: 600; font-size: 1rem; padding: 12px 16px; border-radius: 8px; border: 0; background: var(--stout); color: var(--stout-fg); cursor: pointer; }
+.btn:focus-visible { outline: 3px solid var(--brass); outline-offset: 2px; }
+.btn[disabled] { opacity: .6; cursor: progress; }
+.btn.ghost { background: transparent; color: var(--fg); border: 1px solid var(--line); }
+.form-err { color: var(--danger); font-size: .88rem; font-weight: 600; min-height: 1.2em; }
+.form-ok { color: var(--ok); font-size: .88rem; font-weight: 600; }
+
+.whoami { display: flex; align-items: center; gap: 8px; font-size: .8rem; color: color-mix(in srgb, var(--stout-fg) 75%, transparent); }
+.whoami button { font: inherit; font-size: .8rem; font-weight: 600; color: var(--brass); background: none; border: 0; padding: 0; cursor: pointer; }
+.settings { background: var(--surface); border-bottom: 1px solid var(--line); }
+.settings .wrap { padding-block: 14px 18px; display: grid; gap: 14px; }
+.settings h2 { margin: 0; font-family: var(--display); font-weight: 700; font-size: 1.3rem; text-transform: uppercase; }
+.settings-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.settings-grid > div { display: grid; gap: 8px; align-content: start; min-width: 0; }
+.settings-grid h3 { margin: 0; font-size: .95rem; }
+.sync { font-size: .75rem; color: color-mix(in srgb, var(--stout-fg) 70%, transparent); }
+</style>
+</head>
+<body>
+
+<!-- Login / setup -->
+<section class="wrap gate" id="gate" hidden>
+  <form class="gate-card" id="gateForm" autocomplete="off">
+    <div class="venue">Jerry Flannery's &amp; 1314</div>
+    <h2 id="gateTitle">Staff login</h2>
+    <p id="gateText">Enter the staff PIN to open the delivery checklist.</p>
+    <div class="field">
+      <label for="gatePin">Staff PIN</label>
+      <input class="pin" id="gatePin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="8" required>
+    </div>
+    <div class="field" id="gatePin2Wrap" hidden>
+      <label for="gatePin2">Type the PIN again</label>
+      <input class="pin" id="gatePin2" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="8">
+    </div>
+    <div class="field">
+      <label for="gateName">Your first name</label>
+      <input id="gateName" type="text" maxlength="40" autocomplete="given-name" required>
+    </div>
+    <div class="form-err" id="gateErr" role="alert"></div>
+    <button class="btn" id="gateBtn" type="submit">Open checklist</button>
+  </form>
+</section>
+
+<!-- App -->
+<div id="app" hidden>
+<header class="top">
+  <div class="wrap">
+    <div class="title-row">
+      <div>
+        <div class="venue">Jerry Flannery's &amp; 1314</div>
+        <h1>Wednesday Delivery Shift</h1>
+      </div>
+      <label class="date-ctl"><span class="venue" style="color:inherit;opacity:.7">Shift</span><input type="date" id="shiftDate"></label>
+    </div>
+    <div class="progress-row">
+      <div class="bar" aria-hidden="true"><span id="barFill"></span></div>
+      <div class="stat"><b id="doneCount">0</b>/<span id="totalCount">0</span> done · <span id="photoCount">0</span> photos</div>
+    </div>
+    <div class="filters" role="group" aria-label="Show">
+      <button id="fAll" aria-pressed="true">All tasks</button>
+      <button id="fTodo" aria-pressed="false">Still to do</button>
+      <button id="fNoPhoto" aria-pressed="false">Missing photo</button>
+      <button id="histBtn" class="hist-btn" aria-expanded="false">Past shifts</button>
+    </div>
+    <div class="whoami"><span id="whoText"></span><button id="settingsBtn" aria-expanded="false">Settings</button><span class="sync" id="syncText"></span></div>
+  </div>
+</header>
+
+<section class="history" id="history" hidden>
+  <div class="wrap">
+    <div class="hist-head"><h2>Past shifts</h2><button class="link-btn" id="histClose">Close</button></div>
+    <div id="histList" class="hist-list"></div>
+  </div>
+</section>
+
+<section class="settings" id="settings" hidden>
+  <div class="wrap">
+    <div class="hist-head"><h2>Settings</h2><button class="link-btn" id="settingsClose">Close</button></div>
+    <div class="settings-grid">
+      <form id="nameForm">
+        <h3>Your name</h3>
+        <div class="field"><label for="nameInput">Shown on tasks you tick</label><input id="nameInput" type="text" maxlength="40" required></div>
+        <button class="btn ghost" type="submit">Save name</button>
+        <div class="form-ok" id="nameOk" hidden>Name saved.</div>
+      </form>
+      <form id="pinForm" autocomplete="off">
+        <h3>Change staff PIN</h3>
+        <div class="field"><label for="pinCur">Current PIN</label><input class="pin" id="pinCur" type="password" inputmode="numeric" maxlength="8" required></div>
+        <div class="field"><label for="pinNew">New PIN (4 to 8 digits)</label><input class="pin" id="pinNew" type="password" inputmode="numeric" maxlength="8" required></div>
+        <button class="btn ghost" type="submit">Change PIN</button>
+        <div class="form-err" id="pinErr" role="alert"></div>
+        <div class="form-ok" id="pinOk" hidden>PIN changed. Everyone else will need the new PIN.</div>
+      </form>
+      <div>
+        <h3>This phone</h3>
+        <p style="margin:0;color:var(--muted);font-size:.88rem">Log out if this is a shared device.</p>
+        <button class="btn ghost" id="logoutBtn" type="button">Log out</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<main>
+  <div class="wrap" id="list">
+    <div class="viewing" id="viewing" hidden><span id="viewingText"></span><button class="link-btn" id="backToday">Back to today</button></div>
+    <div class="notice" id="notice" hidden></div>
+  </div>
+</main>
+
+<div class="lightbox" id="lightbox" hidden>
+  <div class="lb-bar"><span id="lbCaption"></span><div style="display:flex;gap:8px"><button class="rm" id="lbRemove">Remove photo</button><button id="lbClose">Close</button></div></div>
+  <div class="lb-img"><img id="lbImg" alt=""></div>
+</div>
+</div>
+
+<script src="/app.js"></script>
+</body>
+</html>
